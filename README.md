@@ -217,3 +217,24 @@ If you configured data grouping, you'll receive separate files for each group, a
 #### Authentication errors
 - Re-configure your EarthRanger data source in Ecoscope Desktop
 - Verify your user account has permission to view the subject group
+
+## Development
+
+Recompile the workflow after editing `spec.yaml`:
+
+```bash
+./dev/recompile.sh
+```
+
+Run the test cases in `test-cases.yaml` (`--all`, or one with `--case <name>`):
+
+```bash
+pixi run bash dev/run-test-cases.sh --case stationary-subjects --update
+```
+
+Cases with `mock_io: false` call EarthRanger and need the `mep_dev` connection set through
+`ECOSCOPE_WORKFLOWS__CONNECTIONS__EARTHRANGER__MEP_DEV__{SERVER,USERNAME,PASSWORD}`; in CI these
+come from the `ER_SERVER`, `ER_USERNAME` and `ER_PASSWORD` repo secrets.
+
+The `stationary-subjects` and `mixed-stationary-and-moving` cases use mock data built by
+`dev/fixtures/build_stationary_fixtures.py` (weather stations reporting from a fixed point).
