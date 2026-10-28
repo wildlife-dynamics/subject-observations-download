@@ -249,19 +249,6 @@
               "type": "array",
               "description": "Columns to drop from the observations dataset, with defaults based on common Ecoscope practices. Modify the list based on your requirements.",
               "ecoscope:advanced": true
-            },
-            "duplicate_strategy": {
-              "default": "suffix",
-              "enum": [
-                "suffix",
-                "skip",
-                "overwrite",
-                "error"
-              ],
-              "title": "Duplicate Strategy",
-              "type": "string",
-              "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
-              "ecoscope:advanced": true
             }
           },
           "required": [],
@@ -527,27 +514,6 @@
           "type": "object",
           "required": [],
           "title": " "
-        },
-        "rename_display_columns": {
-          "additionalProperties": false,
-          "properties": {
-            "duplicate_strategy": {
-              "default": "suffix",
-              "enum": [
-                "suffix",
-                "skip",
-                "overwrite",
-                "error"
-              ],
-              "title": "Duplicate Strategy",
-              "type": "string",
-              "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
-              "ecoscope:advanced": true
-            }
-          },
-          "required": [],
-          "type": "object",
-          "title": "Rename columns for map tooltip display"
         }
       }
     }
@@ -770,13 +736,7 @@
       "ui:order": [
         "customize_columns",
         "sql_query"
-      ],
-      "customize_columns": {
-        "ui:order": [
-          "drop_columns",
-          "duplicate_strategy"
-        ]
-      }
+      ]
     },
     "persist_observations": {
       "ui:order": [
@@ -787,8 +747,7 @@
     "Generate Maps": {
       "ui:order": [
         "generate_maps",
-        "base_map_defs",
-        "rename_display_columns"
+        "base_map_defs"
       ],
       "base_map_defs": {
         "base_maps": {

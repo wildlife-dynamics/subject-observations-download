@@ -185,19 +185,6 @@
           "type": "array",
           "description": "List of columns to drop.",
           "ecoscope:advanced": true
-        },
-        "duplicate_strategy": {
-          "default": "suffix",
-          "enum": [
-            "suffix",
-            "skip",
-            "overwrite",
-            "error"
-          ],
-          "title": "Duplicate Strategy",
-          "type": "string",
-          "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
-          "ecoscope:advanced": true
         }
       },
       "required": [],
@@ -458,27 +445,6 @@
       "type": "object",
       "required": [],
       "title": " "
-    },
-    "rename_display_columns": {
-      "additionalProperties": false,
-      "properties": {
-        "duplicate_strategy": {
-          "default": "suffix",
-          "enum": [
-            "suffix",
-            "skip",
-            "overwrite",
-            "error"
-          ],
-          "title": "Duplicate Strategy",
-          "type": "string",
-          "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
-          "ecoscope:advanced": true
-        }
-      },
-      "required": [],
-      "type": "object",
-      "title": "Rename columns for map tooltip display"
     }
   },
   "$defs": {
@@ -675,12 +641,6 @@
         "filter_point_coords"
       ]
     },
-    "customize_columns": {
-      "ui:order": [
-        "drop_columns",
-        "duplicate_strategy"
-      ]
-    },
     "persist_observations": {
       "ui:order": [
         "filetypes",
@@ -698,8 +658,7 @@
       "sql_query",
       "persist_observations",
       "generate_maps",
-      "base_map_defs",
-      "rename_display_columns"
+      "base_map_defs"
     ]
   },
   "additionalProperties": false

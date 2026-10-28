@@ -331,6 +331,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             rename_columns={},
             retain_columns=[],
             raise_if_not_found=False,
+            duplicate_strategy="suffix",
             **(params.get("customize_columns") or {}),
         )
         .mapvalues(argnames=["df"], argvalues=split_obs_groups)
@@ -509,6 +510,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             drop_columns=["id"],
             retain_columns=[],
             raise_if_not_found=False,
+            duplicate_strategy="suffix",
             rename_columns={
                 "fixtime": "Time",
                 "subject__name": "Subject Name",
