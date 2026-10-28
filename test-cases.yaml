@@ -1,0 +1,374 @@
+base:
+  name: Base Test Case
+  mock_io: false
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Download the individual observations for a subject group."
+    er_client_name:
+      data_source:
+        name: mep_dev
+    filter_obs:
+      bounding_box:
+        min_y: -90
+        max_y: 90
+        min_x: -180
+        max_x: 180
+      filter_point_coords: []
+    customize_columns:
+      drop_columns: ["location", "patrol_serial_number", "patrol_status", "patrol_subject", "patrol_type__value", "subject__content_type", "subject__device_status_properties", "subject__user"]
+    sql_query:
+      query: ''
+    groupers:
+      groupers: []
+    time_range:
+      since: "2015-01-01T00:00:00"
+      until: "2015-01-07T23:59:59"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+      include_details: true
+      include_subjectsource_details: true
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          opacity: 0.5
+          max_zoom: 17
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+      filename_prefix: "subject_observations"
+
+mock-base:
+  name: Base Test Case with mocked IO
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Download the individual observations for a subject group."
+    er_client_name:
+      data_source:
+        name: mep_dev
+    time_range:
+      since: "2015-01-01T00:00:00"
+      until: "2015-01-07T23:59:59"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    groupers:
+      groupers: []
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+# Acceptance criterion for compose#3189: a subject group made up only of stationary
+# subjects (weather stations) must download. Every subject reports from one fixed
+# point, which is what made Download Subject Tracks fail. Fixture: dev/fixtures/.
+stationary-subjects:
+  name: Stationary subjects (weather stations)
+  mock_io: true
+  mock_io_overrides:
+    ecoscope.platform.tasks.io.get_subjectgroup_observations: dev/fixtures/get-subjectgroup-observations-stationary.example-return.parquet
+  params:
+    workflow_details:
+      name: "Weather Station Observations"
+      description: "Download weather station readings."
+    er_client_name:
+      data_source:
+        name: mep_dev
+    time_range:
+      since: "2015-01-01T00:00:00"
+      until: "2015-01-07T23:59:59"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Weather Stations"
+    groupers:
+      groupers:
+        - index_name: "subject__name"
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+      filename_prefix: "weather_station_observations"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+mixed-stationary-and-moving:
+  name: Stationary and moving subjects in one group
+  mock_io: true
+  mock_io_overrides:
+    ecoscope.platform.tasks.io.get_subjectgroup_observations: dev/fixtures/get-subjectgroup-observations-mixed.example-return.parquet
+  params:
+    workflow_details:
+      name: "Mixed Subject Observations"
+      description: "Download observations for a group with stationary and moving subjects."
+    er_client_name:
+      data_source:
+        name: mep_dev
+    time_range:
+      since: "2015-01-01T00:00:00"
+      until: "2015-01-07T23:59:59"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Mixed"
+    groupers:
+      groupers: []
+    persist_observations:
+      filetypes: ["csv"]
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+month-grouper:
+  name: Test Case with a monthly grouper
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Ecoscope"
+      description: "A workflow to download subject observations."
+    time_range:
+      since: "2026-01-01T00:00:00Z"
+      until: "2026-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    groupers:
+      groupers:
+        - temporal_index: "%B"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    filter_obs:
+      filter_point_coords: [
+        {"x": 180.0, "y": 90.0},
+        {"x": 0.0, "y": 0.0},
+        {"x": 1.0, "y": 1.0},
+      ]
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+      filename_prefix: "monthly_subject_observations"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          opacity: 0.5
+          max_zoom: 17
+
+with-details:
+  name: Test Case with Observation and Subject Source Details
+  mock_io: false
+  params:
+    workflow_details:
+      name: "Ecoscope"
+      description: "A workflow to download subject observations."
+    time_range:
+      since: "2015-01-01T00:00:00Z"
+      until: "2015-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+      include_details: true
+      include_subjectsource_details: true
+    filter_obs:
+      filter_point_coords: [
+        {"x": 180.0, "y": 90.0},
+        {"x": 0.0, "y": 0.0},
+        {"x": 1.0, "y": 1.0},
+      ]
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+      filename_prefix: "subject_observations_with_details"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+with-filter:
+  name: With a Filter Flag
+  mock_io: false
+  params:
+    workflow_details:
+      name: "Ecoscope"
+      description: "A workflow to download subject observations."
+    time_range:
+      since: "2026-01-01T00:00:00Z"
+      until: "2026-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+      filter: "manually_and_automatically_filtered"
+    customize_columns:
+      drop_columns: ["location", "subject__content_type", "subject__country"]
+    persist_observations:
+      filetypes: ["parquet", "csv"]
+      filename_prefix: "subject_observations_with_filter"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+value-grouper:
+  name: Value Grouper by Subject Name
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Subject observations grouped by subject name."
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    time_range:
+      since: "2025-12-21T00:00:00Z"
+      until: "2025-12-23T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    groupers:
+      groupers:
+        - index_name: "subject__name"
+    persist_observations:
+      filetypes: ["csv"]
+      filename_prefix: "subject_observations_by_name"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+sql-filter:
+  name: SQL Filter Observations
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Filter subject observations using SQL."
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    time_range:
+      since: "2015-01-01T00:00:00Z"
+      until: "2015-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    sql_query:
+      query: >-
+        SELECT * FROM df WHERE subject__name IS NOT NULL
+    groupers:
+      groupers: []
+    persist_observations:
+      filetypes: ["csv"]
+      filename_prefix: "subject_observations_sql"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+skip-maps:
+  name: Test Skipping Map Generation
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Download subject observations without a map."
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    groupers:
+      groupers: []
+    time_range:
+      since: "2015-01-01T00:00:00"
+      until: "2015-12-31T23:59:59"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+    generate_maps:
+      value: false
+
+no-subjectsource-details:
+  name: No subjectsource details with default drop_columns
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Test dropping subjectsource columns when details not included."
+    time_range:
+      since: "2015-01-01T00:00:00Z"
+      until: "2015-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+      include_details: true
+      include_subjectsource_details: false
+    customize_columns:
+      drop_columns: ["location", "patrol_serial_number", "patrol_status", "patrol_subject", "patrol_type__value", "subject__content_type", "subject__device_status_properties", "subject__user", "subject__common_name", "subject__country", "subject__created_at", "subject__image_url", "subject__last_position", "subject__last_position_date", "subject__last_position_status", "subject__tracks_available", "subject__updated_at", "subject__url", "subjectsource__additional", "subjectsource__location", "subjectsource__source", "subjectsource__subject"]
+    persist_observations:
+      filetypes: ["parquet"]
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+    generate_maps:
+      value: false

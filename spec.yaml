@@ -1,0 +1,423 @@
+id: subject_observations_download
+
+requirements:
+  - name: ecoscope-platform
+    version: ">=2.26.0, <3.0.0"
+    channel: https://repo.prefix.dev/ecoscope-workflows/
+  # ecoscope-platform already declares this exact pydeck dependency. it is
+  # re-stated here as a workaround for a known issue. for further detail, see:
+  # https://github.com/wildlife-dynamics/wt/issues/167#issuecomment-4451993697
+  - name: pydeck
+    version: 0.9.2
+    channel: conda-forge
+
+rjsf-overrides:
+  properties:
+    # --- Subject Group card (get_subjectgroup_observations) ---
+    subject_obs.title: "Subject Group"
+    subject_obs.description: "Choose the subject group to download."
+    subject_obs.properties.subject_group_name.description: >-
+      Enter the exact "Subject Group" name as it appears in EarthRanger (e.g. "Weather Stations"). Subject group names can be found in your EarthRanger Admin site under Observations → Subject groups
+    subject_obs.properties.subject_group_name.ecoscope:transform:
+      - transformer: EarthRangerEnumResolver
+        transformer_kws:
+          type: subject_group_name
+          depends_on: properties.er_client_name.properties.data_source.properties.name
+    # Drop redundant checkbox hints — the titles are self-explanatory.
+    subject_obs.properties.include_details.description: ""
+    subject_obs.properties.include_subjectsource_details.description: ""
+    # Pretty display labels for the exclusion-flag filter. Replace the enum wholesale with a
+    # oneOf of const/title pairs (same labeled-select pattern as ValueGrouper.index_name);
+    # the submitted value stays the raw const string, which the task's Literal still accepts.
+    subject_obs.properties.filter:
+      title: "Filter"
+      description: "Filter observations based on exclusion flags."
+      type: string
+      default: "clean"
+      "ecoscope:advanced": true
+      oneOf:
+        - const: "none"
+          title: "None"
+        - const: "clean"
+          title: "Clean"
+        - const: "manually_filtered"
+          title: "Manually filtered"
+        - const: "automatically_filtered"
+          title: "Automatically filtered"
+        - const: "manually_and_automatically_filtered"
+          title: "Manually and automatically filtered"
+
+    # --- Filter Data: location filter (no trajectory segment filter — no tracks are built) ---
+    Filter Data.properties.filter_obs.title: ""
+    Filter Data.properties.filter_obs.properties.bounding_box.description: >-
+      Only include subject observations whose coordinates fall inside this bounding box.
+    Filter Data.properties.filter_obs.properties.filter_point_coords.description: >-
+      Exclude observations recorded at these exact coordinates (e.g. known bad GPS fixes).
+
+    # --- Group Data: grouper override ---
+    Group Data.properties.groupers.title: ""
+    Group Data.properties.groupers.properties.groupers.description: ""
+    Group Data.properties.groupers.properties.groupers.items.anyOf:
+      - {"$ref": "#/$defs/ValueGrouper"}
+      - {"$ref": "#/$defs/TemporalGrouper"}
+
+    # --- Refine Data: Process Columns (drop columns; post-split, downloads-only) ---
+    Refine Data.properties.customize_columns.properties.drop_columns.default: ["location", "patrol_serial_number", "patrol_status", "patrol_subject", "patrol_type__value", "subject__content_type", "subject__device_status_properties", "subject__user", "subject__common_name", "subject__country", "subject__created_at", "subject__image_url", "subject__last_position", "subject__last_position_date", "subject__last_position_status", "subject__tracks_available", "subject__updated_at", "subject__url", "subjectsource__additional", "subjectsource__location", "subjectsource__source", "subjectsource__subject"]
+    Refine Data.properties.customize_columns.properties.drop_columns.description: >-
+      Columns to drop from the observations dataset, with defaults based on common Ecoscope practices. Modify the list based on your requirements.
+
+    # --- Refine Data: SQL query (post-split, downloads-only) ---
+    Refine Data.properties.sql_query.properties.query.title: "SQL Query"
+    Refine Data.properties.sql_query.properties.query.description: >-
+      Write a SQL query to filter or transform your subject observations. Leave blank to skip this step. Use df as the table name (e.g., SELECT * FROM df WHERE subject__name = 'Station 1'). Note that queries only apply to your downloaded files and not the generated map.
+
+    # --- Download File Format (persist task exposed directly, as in download-events) ---
+    # filetypes is a uniqueItems multi-select; its title renders as a large subhead.
+    # A " " title blanks that redundant heading (a "" would fall back to the raw key
+    # "filetypes"); the "Download File Format" card title is the section label.
+    persist_observations.properties.filetypes.title: " "
+    persist_observations.properties.filetypes.default: ["parquet"]
+    persist_observations.properties.filetypes.items.enum: ["csv", "parquet"]
+    persist_observations.properties.filetypes.description: >-
+      Choose the file format for your download. Parquet files are compact, fast to query, and keep all your data in a single file. Works with Python, R, QGIS, and other GIS tools.
+    persist_observations.properties.filename_prefix.title: "Filename prefix"
+    persist_observations.properties.filename_prefix.default: "subject_observations"
+    persist_observations.properties.filename_prefix.description: >-
+      A name added to the beginning of your output files. A unique ID is automatically added to the end to prevent duplicates.
+
+    # --- Generate Maps ---
+    # Drop the redundant task header; the checkbox label (value.title) is enough. Blank
+    # the native invert_bool description so it does NOT render above the checkbox; helper
+    # text is supplied below via uiSchema ui:help.
+    Generate Maps.properties.generate_maps.title: ""
+    Generate Maps.properties.generate_maps.properties.value.title: "Generate maps in dashboard"
+    Generate Maps.properties.generate_maps.properties.value.default: true
+    Generate Maps.properties.generate_maps.properties.value.description: ""
+    Generate Maps.properties.base_map_defs.properties.base_maps.title: "Map Base Layers"
+
+  $defs:
+    ValueGrouper:
+      title: "Category"
+      type: "object"
+      properties:
+        index_name:
+          title: "Index Name"
+          type: "string"
+          oneOf:
+            - const: "subject__name"
+              title: "Subject Name"
+            - const: "subject__subtype"
+              title: "Subject Subtype"
+            - const: "subject__sex"
+              title: "Subject Sex"
+
+  uiSchema:
+    Filter Data.filter_obs.filter_point_coords.items.ui:options.label: false
+    Generate Maps.base_map_defs.base_maps.items.ui:options.label: false
+    Generate Maps.generate_maps.value.ui:help: >-
+      Not recommended for large datasets to improve performance.
+
+task-instance-defaults:
+  skipif:
+    conditions:
+      - any_is_empty_df
+      - any_dependency_skipped
+
+workflow:
+  - name: Workflow Details
+    id: workflow_details
+    task: set_workflow_details
+
+  - name: Data Source
+    id: er_client_name
+    task: set_er_connection
+
+  - name: Time Range
+    id: time_range
+    task: set_time_range
+    partial:
+      time_format: "%d %b %Y %H:%M:%S"
+
+  - name: Extract Timezone Selection
+    id: get_timezone
+    task: get_timezone_from_time_range
+    partial:
+      time_range: ${{ workflow.time_range.return }}
+
+  # subject group observations
+  - name: "Get Subject Group Observations from EarthRanger"
+    id: subject_obs
+    task: get_subjectgroup_observations
+    partial:
+      client: ${{ workflow.er_client_name.return }}
+      time_range: ${{ workflow.time_range.return }}
+      raise_on_empty: false
+      # always fetch the subject's free-form `additional` JSON — `assign_subject_colors`
+      # reads `subject__additional` for per-subject map colors.
+      include_subject_additional: true
+
+  - name: Warn if mixed subtype
+    id: warn_if_mixed_subtype
+    task: mixed_subtype_warning
+    skipif:
+      conditions:
+        - never
+    partial:
+      subject_obs: ${{ workflow.subject_obs.return }}
+
+  # Observations are kept as points throughout — no relocations_to_trajectory step —
+  # so stationary subjects (e.g. weather stations) work as well as moving ones.
+  - name: "Convert to timezone"
+    id: convert_to_user_timezone
+    task: convert_values_to_timezone
+    partial:
+      df: ${{ workflow.subject_obs.return }}
+      timezone: ${{ workflow.get_timezone.return }}
+      columns: ["fixtime"]
+
+  - name: Remove Column Prefix Extra
+    id: drop_extra_prefix
+    task: drop_column_prefix
+    partial:
+      df: ${{ workflow.convert_to_user_timezone.return }}
+      prefix: "extra__"
+      duplicate_strategy: "suffix"
+
+  # === FILTER DATA (location filter) ===
+  - title: Filter Data
+    type: task-group
+    description: >-
+      Filter subject observations based on their location.
+    tasks:
+      - name: Filter Observation Locations
+        id: filter_obs
+        task: apply_reloc_coord_filter
+        partial:
+          df: ${{ workflow.drop_extra_prefix.return }}
+          roi_gdf: null
+          roi_name: null
+          reset_index: false
+
+  # === GROUP DATA (set_groupers + temporal index + split; all pre-SQL) ===
+  - title: Group Data
+    type: task-group
+    description: >-
+      Configure how subject observations are grouped (by category or temporal index) and
+      split into per-group datasets for export and mapping.
+    tasks:
+      - name: Group Data
+        id: groupers
+        task: set_groupers
+
+      - name: Add temporal index to observations
+        id: obs_add_temporal_index
+        task: add_temporal_index
+        partial:
+          df: ${{ workflow.filter_obs.return }}
+          time_col: "fixtime"
+          groupers: ${{ workflow.groupers.return }}
+          cast_to_datetime: true
+          format: "mixed"
+
+      - name: Split observations by Group
+        id: split_obs_groups
+        task: split_groups
+        partial:
+          df: ${{ workflow.obs_add_temporal_index.return }}
+          groupers: ${{ workflow.groupers.return }}
+
+  # === REFINE DATA (post-split, per-group, downloads-only): drop columns then SQL ===
+  - title: Refine Data
+    type: task-group
+    description: >-
+      Reshape and organize your subject observations before downloading. Applies to the
+      downloaded files only — not the generated map.
+    tasks:
+      - name: Process Columns
+        id: customize_columns
+        task: map_columns
+        partial:
+          rename_columns: {}
+          retain_columns: []
+          raise_if_not_found: false
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.split_obs_groups.return }}
+
+      - name: Apply SQL Query
+        id: sql_query
+        task: apply_sql_query
+        partial:
+          # Hide both the columns whitelist and the sanitize toggle from the form —
+          # default-on sanitize makes the whitelist unnecessary, and sanitize is fixed
+          # on so SQL "just works" on complex/RGBA columns.
+          sanitize: true
+          columns: null
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.customize_columns.return }}
+
+  # === DOWNLOAD FILE FORMAT ===
+  - name: Download File Format
+    id: persist_observations
+    task: persist_grouped_dfs_for_results_download
+    partial:
+      grouped_dfs: ${{ workflow.sql_query.return }}   # post-split SQL output (downloads)
+      root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+      sanitize: true
+    skipif:
+      conditions:
+        - never
+
+  - title: Generate Maps
+    type: task-group
+    description: >-
+      Generate maps to visualize the subject observations.
+    tasks:
+      # positive "Generate maps in dashboard" toggle, chained ahead of the shared
+      # maybe_skip_df task (checked = generate; value=true → return=false → don't skip)
+      - name: Generate Maps in Dashboard
+        id: generate_maps
+        task: invert_bool
+
+      - name: Skip Map Generation
+        id: skip_map_generation
+        task: maybe_skip_df
+        partial:
+          skip: ${{ workflow.generate_maps.return }}
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.split_obs_groups.return }}
+
+      # Widget Names
+      - name: "Set Observations Map Title"
+        id: set_obs_map_title
+        task: set_string_var
+        partial:
+          var: "Subject Group Observations Map"
+
+      - name: " "
+        id: base_map_defs
+        task: set_base_maps
+
+      - name: Apply Color to Observations By Subject
+        id: colormap_obs
+        task: assign_subject_colors
+        partial:
+          subject_id_column: "subject__id"
+          output_column: "subject_colormap"
+          fallback_strategy: default_color
+          default_color: "#FFFF00"
+          default_palette: "tab20b"
+          additional_column: "subject__additional"
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.skip_map_generation.return }}
+
+      - name: Sort Subject Names
+        id: sort_subject_names
+        task: sort_values
+        partial:
+          column_name: "subject__name"
+          ascending: true
+          na_position: "last"
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.colormap_obs.return }}
+
+      - name: Rename columns for map tooltip display
+        id: rename_display_columns
+        task: map_columns
+        partial:
+          # drop 'id' to avoid a conflict with the `id` index when the map resets it;
+          # map branch only — the downloads keep the observation id.
+          drop_columns: ["id"]
+          retain_columns: []
+          raise_if_not_found: false
+          rename_columns:
+            fixtime: "Time"
+            subject__name: "Subject Name"
+            subject__subtype: "Subject Subtype"
+            subject__sex: "Subject Sex"
+        mapvalues:
+          argnames: df
+          argvalues: ${{ workflow.sort_subject_names.return }}
+
+      - name: Create map layer for each observation group
+        id: obs_map_layers
+        task: create_point_layer
+        skipif:
+          conditions:
+            - any_is_empty_df
+            - any_dependency_skipped
+            - all_geometry_are_none
+        partial:
+          layer_style:
+            fill_color_column: "subject_colormap"
+            get_radius: 5
+          legend:
+            label_column: "Subject Name"
+            color_column: "subject_colormap"
+          tooltip_columns: ["Time", "Subject Name", "Subject Subtype", "Subject Sex"]
+        mapvalues:
+          argnames: geodataframe
+          argvalues: ${{ workflow.rename_display_columns.return }}
+
+      - name: Draw Ecomaps for each observation group
+        id: obs_ecomap
+        task: draw_ecomap
+        partial:
+          tile_layers: ${{ workflow.base_map_defs.return }}
+          north_arrow_style:
+            placement: "top-left"
+          legend_style:
+            title: "Subject"
+            format_title: false
+            placement: "bottom-right"
+          static: false
+          title: null
+          max_zoom: 20
+          widget_id: ${{ workflow.set_obs_map_title.return }}
+        mapvalues:
+          argnames: geo_layers
+          argvalues: ${{ workflow.obs_map_layers.return }}
+
+      - name: Persist ecomap as Text
+        id: ecomap_html_urls
+        task: persist_text
+        partial:
+          root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+          filename_suffix: "v2"
+        mapvalues:
+          argnames: text
+          argvalues: ${{ workflow.obs_ecomap.return }}
+
+      - name: Create Map Widgets for Observations
+        id: obs_map_widgets_single_views
+        task: create_map_widget_single_view
+        skipif:
+          conditions:
+            - never
+        partial:
+          title: ${{ workflow.set_obs_map_title.return }}
+        map:
+          argnames: [view, data]
+          argvalues: ${{ workflow.ecomap_html_urls.return }}
+
+      - name: Merge EcoMap Widget Views
+        id: obs_grouped_map_widget
+        task: merge_widget_views
+        partial:
+          widgets: ${{ workflow.obs_map_widgets_single_views.return }}
+
+  # dashboard
+  - name: Create Dashboard with Subject Observation Widgets
+    id: subject_observations_dashboard
+    task: gather_dashboard
+    partial:
+      details: ${{ workflow.workflow_details.return}}
+      widgets:
+        - ${{ workflow.obs_grouped_map_widget.return }}
+      groupers: ${{ workflow.groupers.return }}
+      time_range: ${{ workflow.time_range.return}}
+      warning: ${{ workflow.warn_if_mixed_subtype.return}}

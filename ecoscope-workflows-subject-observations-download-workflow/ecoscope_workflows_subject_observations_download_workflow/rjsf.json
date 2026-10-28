@@ -1,0 +1,821 @@
+{
+  "properties": {
+    "workflow_details": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Workflow Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Workflow Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object",
+      "description": "Add information that will help to differentiate this workflow from another.",
+      "title": "Workflow Details"
+    },
+    "er_client_name": {
+      "additionalProperties": false,
+      "properties": {
+        "data_source": {
+          "$ref": "#/$defs/EarthRangerConnection",
+          "title": "",
+          "description": "Select one of your configured data sources."
+        }
+      },
+      "required": [
+        "data_source"
+      ],
+      "type": "object",
+      "title": "Data Source"
+    },
+    "time_range": {
+      "additionalProperties": false,
+      "properties": {
+        "since": {
+          "format": "date-time",
+          "title": "Since",
+          "type": "string",
+          "description": "The start time"
+        },
+        "until": {
+          "format": "date-time",
+          "title": "Until",
+          "type": "string",
+          "description": "The end time"
+        },
+        "timezone": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/TimezoneInfo"
+            }
+          ],
+          "default": null,
+          "title": "Timezone"
+        }
+      },
+      "required": [
+        "since",
+        "until"
+      ],
+      "type": "object",
+      "description": "Choose the period of time to analyze.",
+      "title": "Time Range"
+    },
+    "subject_obs": {
+      "additionalProperties": false,
+      "properties": {
+        "subject_group_name": {
+          "title": "Subject Group Name",
+          "type": "string",
+          "description": "Enter the exact \"Subject Group\" name as it appears in EarthRanger (e.g. \"Weather Stations\"). Subject group names can be found in your EarthRanger Admin site under Observations \u2192 Subject groups",
+          "ecoscope:transform": [
+            {
+              "transformer": "EarthRangerEnumResolver",
+              "transformer_kws": {
+                "type": "subject_group_name",
+                "depends_on": "properties.er_client_name.properties.data_source.properties.name"
+              }
+            }
+          ]
+        },
+        "include_details": {
+          "default": false,
+          "title": "Include Observation Details",
+          "type": "boolean",
+          "description": "",
+          "ecoscope:advanced": true
+        },
+        "include_subjectsource_details": {
+          "default": false,
+          "title": "Include Subject Source Details",
+          "type": "boolean",
+          "description": "",
+          "ecoscope:advanced": true
+        },
+        "filter": {
+          "title": "Filter",
+          "description": "Filter observations based on exclusion flags.",
+          "type": "string",
+          "default": "clean",
+          "ecoscope:advanced": true,
+          "oneOf": [
+            {
+              "const": "none",
+              "title": "None"
+            },
+            {
+              "const": "clean",
+              "title": "Clean"
+            },
+            {
+              "const": "manually_filtered",
+              "title": "Manually filtered"
+            },
+            {
+              "const": "automatically_filtered",
+              "title": "Automatically filtered"
+            },
+            {
+              "const": "manually_and_automatically_filtered",
+              "title": "Manually and automatically filtered"
+            }
+          ]
+        }
+      },
+      "required": [
+        "subject_group_name"
+      ],
+      "type": "object",
+      "title": "Subject Group",
+      "description": "Choose the subject group to download."
+    },
+    "Filter Data": {
+      "type": "object",
+      "description": "Filter subject observations based on their location.",
+      "ecoscope:task_group": true,
+      "properties": {
+        "filter_obs": {
+          "additionalProperties": false,
+          "properties": {
+            "bounding_box": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/BoundingBox"
+                }
+              ],
+              "default": {
+                "min_y": -90.0,
+                "max_y": 90.0,
+                "min_x": -180.0,
+                "max_x": 180.0
+              },
+              "title": "Bounding Box",
+              "description": "Only include subject observations whose coordinates fall inside this bounding box.",
+              "ecoscope:advanced": true
+            },
+            "filter_point_coords": {
+              "default": [],
+              "items": {
+                "$ref": "#/$defs/Coordinate"
+              },
+              "title": "Filter Exact Point Coordinates",
+              "type": "array",
+              "description": "Exclude observations recorded at these exact coordinates (e.g. known bad GPS fixes).",
+              "ecoscope:advanced": true
+            }
+          },
+          "required": [],
+          "type": "object",
+          "title": ""
+        }
+      }
+    },
+    "Group Data": {
+      "type": "object",
+      "description": "Configure how subject observations are grouped (by category or temporal index) and split into per-group datasets for export and mapping.",
+      "ecoscope:task_group": true,
+      "properties": {
+        "groupers": {
+          "additionalProperties": false,
+          "properties": {
+            "groupers": {
+              "default": null,
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ValueGrouper"
+                  },
+                  {
+                    "$ref": "#/$defs/TemporalGrouper"
+                  }
+                ],
+                "title": "Group by"
+              },
+              "title": " ",
+              "type": "array",
+              "description": ""
+            }
+          },
+          "type": "object",
+          "required": [],
+          "title": ""
+        }
+      }
+    },
+    "Refine Data": {
+      "type": "object",
+      "description": "Reshape and organize your subject observations before downloading. Applies to the downloaded files only \u2014 not the generated map.",
+      "ecoscope:task_group": true,
+      "properties": {
+        "customize_columns": {
+          "additionalProperties": false,
+          "properties": {
+            "drop_columns": {
+              "default": [
+                "location",
+                "patrol_serial_number",
+                "patrol_status",
+                "patrol_subject",
+                "patrol_type__value",
+                "subject__content_type",
+                "subject__device_status_properties",
+                "subject__user",
+                "subject__common_name",
+                "subject__country",
+                "subject__created_at",
+                "subject__image_url",
+                "subject__last_position",
+                "subject__last_position_date",
+                "subject__last_position_status",
+                "subject__tracks_available",
+                "subject__updated_at",
+                "subject__url",
+                "subjectsource__additional",
+                "subjectsource__location",
+                "subjectsource__source",
+                "subjectsource__subject"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "title": "Drop Columns",
+              "type": "array",
+              "description": "Columns to drop from the observations dataset, with defaults based on common Ecoscope practices. Modify the list based on your requirements.",
+              "ecoscope:advanced": true
+            },
+            "duplicate_strategy": {
+              "default": "suffix",
+              "enum": [
+                "suffix",
+                "skip",
+                "overwrite",
+                "error"
+              ],
+              "title": "Duplicate Strategy",
+              "type": "string",
+              "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
+              "ecoscope:advanced": true
+            }
+          },
+          "required": [],
+          "type": "object",
+          "title": "Process Columns"
+        },
+        "sql_query": {
+          "additionalProperties": false,
+          "properties": {
+            "query": {
+              "default": "",
+              "title": "SQL Query",
+              "type": "string",
+              "description": "Write a SQL query to filter or transform your subject observations. Leave blank to skip this step. Use df as the table name (e.g., SELECT * FROM df WHERE subject__name = 'Station 1'). Note that queries only apply to your downloaded files and not the generated map.",
+              "ecoscope:advanced": true
+            }
+          },
+          "required": [],
+          "type": "object",
+          "title": "Apply SQL Query"
+        }
+      }
+    },
+    "persist_observations": {
+      "additionalProperties": false,
+      "properties": {
+        "filetypes": {
+          "default": [
+            "parquet"
+          ],
+          "items": {
+            "enum": [
+              "csv",
+              "parquet"
+            ],
+            "type": "string"
+          },
+          "title": " ",
+          "type": "array",
+          "description": "Choose the file format for your download. Parquet files are compact, fast to query, and keep all your data in a single file. Works with Python, R, QGIS, and other GIS tools.",
+          "uniqueItems": true
+        },
+        "filename_prefix": {
+          "default": "subject_observations",
+          "title": "Filename prefix",
+          "type": "string",
+          "description": "A name added to the beginning of your output files. A unique ID is automatically added to the end to prevent duplicates.",
+          "ecoscope:advanced": true
+        }
+      },
+      "required": [],
+      "type": "object",
+      "title": "Download File Format"
+    },
+    "Generate Maps": {
+      "type": "object",
+      "description": "Generate maps to visualize the subject observations.",
+      "ecoscope:task_group": true,
+      "properties": {
+        "generate_maps": {
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "default": true,
+              "title": "Generate maps in dashboard",
+              "type": "boolean",
+              "description": ""
+            }
+          },
+          "type": "object",
+          "required": [],
+          "title": ""
+        },
+        "base_map_defs": {
+          "additionalProperties": false,
+          "properties": {
+            "base_maps": {
+              "default": [
+                {
+                  "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+                  "opacity": 1,
+                  "max_zoom": 20,
+                  "min_zoom": 0
+                },
+                {
+                  "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                  "opacity": 0.5,
+                  "max_zoom": 20,
+                  "min_zoom": 0
+                }
+              ],
+              "items": {
+                "title": "Base Layer",
+                "anyOf": [
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        "title": "Preset Layer URL",
+                        "type": "string",
+                        "const": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        "enum": [
+                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        ]
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Layer Opacity",
+                        "type": "number"
+                      }
+                    },
+                    "title": "Open Street Map",
+                    "type": "object"
+                  },
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+                        "title": "Preset Layer URL",
+                        "type": "string",
+                        "const": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+                        "enum": [
+                          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Layer Opacity",
+                        "type": "number"
+                      }
+                    },
+                    "title": "Roadmap",
+                    "type": "object"
+                  },
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                        "title": "Preset Layer URL",
+                        "type": "string",
+                        "const": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                        "enum": [
+                          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Layer Opacity",
+                        "type": "number"
+                      }
+                    },
+                    "title": "Satellite",
+                    "type": "object"
+                  },
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+                        "title": "Preset Layer URL",
+                        "type": "string",
+                        "const": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+                        "enum": [
+                          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Layer Opacity",
+                        "type": "number"
+                      }
+                    },
+                    "title": "Terrain",
+                    "type": "object"
+                  },
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
+                        "title": "Preset Layer URL",
+                        "type": "string",
+                        "const": "https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
+                        "enum": [
+                          "https://server.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}"
+                        ]
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Layer Opacity",
+                        "type": "number"
+                      }
+                    },
+                    "title": "USGS Hillshade",
+                    "type": "object"
+                  },
+                  {
+                    "description": "A tiled raster layer loaded on-demand from a URL template (e.g., base maps).",
+                    "properties": {
+                      "url": {
+                        "default": "https://example.tiles.com/{z}/{x}/{y}.png",
+                        "description": "The URL of a publicly accessible tiled raster service.",
+                        "pattern": "https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}([-a-zA-Z0-9()@:%_\\+.~#?&//=\\{\\}]*)",
+                        "title": "Custom Layer URL",
+                        "type": "string"
+                      },
+                      "opacity": {
+                        "default": 1,
+                        "description": "Set layer transparency from 1 (fully visible) to 0 (hidden).",
+                        "ecoscope:advanced": true,
+                        "maximum": 1.0,
+                        "minimum": 0.0,
+                        "title": "Custom Layer Opacity",
+                        "type": "number"
+                      },
+                      "max_zoom": {
+                        "default": 20,
+                        "description": "Set the maximum zoom level to fetch tiles for.",
+                        "title": "Custom Layer Max Zoom",
+                        "type": "integer"
+                      },
+                      "min_zoom": {
+                        "default": 0,
+                        "description": "Set the minimum zoom level to fetch tiles for.",
+                        "title": "Custom Layer Min Zoom",
+                        "type": "integer"
+                      }
+                    },
+                    "title": "Custom Layer (Advanced)",
+                    "type": "object"
+                  }
+                ]
+              },
+              "title": "Map Base Layers",
+              "type": "array",
+              "description": "Select tile layers to use as base layers in map outputs. The first layer in the list will be the bottommost layer displayed.",
+              "ecoscope:advanced": true
+            }
+          },
+          "type": "object",
+          "required": [],
+          "title": " "
+        },
+        "rename_display_columns": {
+          "additionalProperties": false,
+          "properties": {
+            "duplicate_strategy": {
+              "default": "suffix",
+              "enum": [
+                "suffix",
+                "skip",
+                "overwrite",
+                "error"
+              ],
+              "title": "Duplicate Strategy",
+              "type": "string",
+              "description": "Strategy for handling a rename whose new name is already taken. 'suffix': append _1, _2, etc. to the new name; 'skip': skip the rename, leaving the column under its original name; 'overwrite': replace the existing column; 'error': raise ValueError.",
+              "ecoscope:advanced": true
+            }
+          },
+          "required": [],
+          "type": "object",
+          "title": "Rename columns for map tooltip display"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "EarthRangerConnection": {
+      "properties": {
+        "name": {
+          "title": "Data Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "EarthRangerConnection",
+      "type": "object"
+    },
+    "TimezoneInfo": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "tzCode": {
+          "title": "Tzcode",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "utc": {
+          "title": "Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "tzCode",
+        "name",
+        "utc"
+      ],
+      "title": "TimezoneInfo",
+      "type": "object"
+    },
+    "BoundingBox": {
+      "properties": {
+        "min_y": {
+          "default": -90.0,
+          "ecoscope:advanced": true,
+          "title": "Min Latitude",
+          "type": "number"
+        },
+        "max_y": {
+          "default": 90.0,
+          "ecoscope:advanced": true,
+          "title": "Max Latitude",
+          "type": "number"
+        },
+        "min_x": {
+          "default": -180.0,
+          "ecoscope:advanced": true,
+          "title": "Min Longitude",
+          "type": "number"
+        },
+        "max_x": {
+          "default": 180.0,
+          "ecoscope:advanced": true,
+          "title": "Max Longitude",
+          "type": "number"
+        }
+      },
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "Coordinate": {
+      "properties": {
+        "y": {
+          "description": "Example -0.15293",
+          "title": "Latitude",
+          "type": "number"
+        },
+        "x": {
+          "description": "Example 37.30906",
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "y",
+        "x"
+      ],
+      "title": "Coordinate",
+      "type": "object"
+    },
+    "SpatialGrouper": {
+      "properties": {
+        "spatial_index_name": {
+          "title": "Spatial Regions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spatial_index_name"
+      ],
+      "title": "Spatial",
+      "type": "object"
+    },
+    "TemporalGrouper": {
+      "properties": {
+        "temporal_index": {
+          "oneOf": [
+            {
+              "const": "%Y",
+              "title": "Year (example: 2024)"
+            },
+            {
+              "const": "%B",
+              "title": "Month (example: September)"
+            },
+            {
+              "const": "%Y-%m",
+              "title": "Year and Month (example: 2023-01)"
+            },
+            {
+              "const": "%j",
+              "title": "Day of the year as a number (example: 365)"
+            },
+            {
+              "const": "%d",
+              "title": "Day of the month as a number (example: 31)"
+            },
+            {
+              "const": "%A",
+              "title": "Day of the week (example: Sunday)"
+            },
+            {
+              "const": "%H",
+              "title": "Hour (24-hour clock) as number (example: 22)"
+            },
+            {
+              "const": "%Y-%m-%d",
+              "title": "Date (example: 2025-01-31)"
+            }
+          ],
+          "title": "Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "temporal_index"
+      ],
+      "title": "Time",
+      "type": "object"
+    },
+    "ValueGrouper": {
+      "title": "Category",
+      "type": "object",
+      "properties": {
+        "index_name": {
+          "title": "Index Name",
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "subject__name",
+              "title": "Subject Name"
+            },
+            {
+              "const": "subject__subtype",
+              "title": "Subject Subtype"
+            },
+            {
+              "const": "subject__sex",
+              "title": "Subject Sex"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "uiSchema": {
+    "workflow_details": {
+      "ui:order": [
+        "name",
+        "description"
+      ]
+    },
+    "time_range": {
+      "ui:order": [
+        "since",
+        "until",
+        "timezone"
+      ]
+    },
+    "subject_obs": {
+      "ui:order": [
+        "subject_group_name",
+        "include_details",
+        "include_subjectsource_details",
+        "filter"
+      ]
+    },
+    "Filter Data": {
+      "filter_obs": {
+        "ui:order": [
+          "bounding_box",
+          "filter_point_coords"
+        ],
+        "filter_point_coords": {
+          "items": {
+            "ui:options": {
+              "label": false
+            }
+          }
+        }
+      }
+    },
+    "Refine Data": {
+      "ui:order": [
+        "customize_columns",
+        "sql_query"
+      ],
+      "customize_columns": {
+        "ui:order": [
+          "drop_columns",
+          "duplicate_strategy"
+        ]
+      }
+    },
+    "persist_observations": {
+      "ui:order": [
+        "filetypes",
+        "filename_prefix"
+      ]
+    },
+    "Generate Maps": {
+      "ui:order": [
+        "generate_maps",
+        "base_map_defs",
+        "rename_display_columns"
+      ],
+      "base_map_defs": {
+        "base_maps": {
+          "items": {
+            "ui:options": {
+              "label": false
+            }
+          }
+        }
+      },
+      "generate_maps": {
+        "value": {
+          "ui:help": "Not recommended for large datasets to improve performance."
+        }
+      }
+    },
+    "ui:order": [
+      "workflow_details",
+      "er_client_name",
+      "time_range",
+      "subject_obs",
+      "Filter Data",
+      "Group Data",
+      "Refine Data",
+      "persist_observations",
+      "Generate Maps"
+    ]
+  },
+  "additionalProperties": false
+}
