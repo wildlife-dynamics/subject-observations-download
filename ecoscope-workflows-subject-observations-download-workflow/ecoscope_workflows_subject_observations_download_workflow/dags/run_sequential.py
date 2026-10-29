@@ -404,6 +404,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .partial(
             grouped_dfs=sql_query,
             root_path=os.environ["ECOSCOPE_WORKFLOWS_RESULTS"],
+            filename_prefix="subject_observations",
             sanitize=True,
             **(params.get("persist_observations") or {}),
         )

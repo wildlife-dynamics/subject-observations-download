@@ -121,10 +121,6 @@ rjsf-overrides:
     persist_observations.properties.filetypes.items.enum: ["csv", "parquet"]
     persist_observations.properties.filetypes.description: >-
       Choose the file format for your download. Parquet files are compact, fast to query, and keep all your data in a single file. Works with Python, R, QGIS, and other GIS tools.
-    persist_observations.properties.filename_prefix.title: "Filename prefix"
-    persist_observations.properties.filename_prefix.default: "subject_observations"
-    persist_observations.properties.filename_prefix.description: >-
-      A name added to the beginning of your output files. A unique ID is automatically added to the end to prevent duplicates.
 
     # --- Generate Maps ---
     # Drop the redundant task header; the checkbox label (value.title) is enough. Blank
@@ -327,6 +323,7 @@ workflow:
     partial:
       grouped_dfs: ${{ workflow.sql_query.return }}   # post-split SQL output (downloads)
       root_path: ${{ env.ECOSCOPE_WORKFLOWS_RESULTS }}
+      filename_prefix: "subject_observations"
       sanitize: true
     skipif:
       conditions:

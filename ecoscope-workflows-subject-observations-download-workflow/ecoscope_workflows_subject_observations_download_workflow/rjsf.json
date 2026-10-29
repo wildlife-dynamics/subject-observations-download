@@ -282,13 +282,6 @@
           "title": " ",
           "type": "array",
           "uniqueItems": true
-        },
-        "filename_prefix": {
-          "default": "subject_observations",
-          "description": "A name added to the beginning of your output files. A unique ID is automatically added to the end to prevent duplicates.",
-          "ecoscope:advanced": true,
-          "title": "Filename prefix",
-          "type": "string"
         }
       },
       "required": [],
@@ -728,12 +721,6 @@
       "ui:order": [
         "customize_columns",
         "sql_query"
-      ]
-    },
-    "persist_observations": {
-      "ui:order": [
-        "filetypes",
-        "filename_prefix"
       ]
     },
     "Generate Maps": {

@@ -218,13 +218,6 @@
           "title": "Filetypes",
           "type": "array",
           "uniqueItems": true
-        },
-        "filename_prefix": {
-          "default": null,
-          "description": "            Optional filename to persist text to within the `root_path`.\n            If not provided, a filename will be generated based on a hash of the df content.\n            ",
-          "ecoscope:advanced": true,
-          "title": "Filename Prefix",
-          "type": "string"
         }
       },
       "required": [],
@@ -631,12 +624,6 @@
       "ui:order": [
         "bounding_box",
         "filter_point_coords"
-      ]
-    },
-    "persist_observations": {
-      "ui:order": [
-        "filetypes",
-        "filename_prefix"
       ]
     },
     "ui:order": [
