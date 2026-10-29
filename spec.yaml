@@ -1,4 +1,45 @@
 id: subject_observations_download
+metadata:
+  name: Subject Observations Download
+  description: >-
+    Downloads the individual observations for an EarthRanger subject group, one row per
+    observation, as CSV and/or GeoParquet. No trajectories are built, so it works for
+    stationary subjects (e.g. weather stations) as well as moving subjects. When observation
+    details are included, they are unpacked into one column per value. Optionally shows the
+    observations as points on a dashboard map.
+  maintainers:
+    - name: Zakariya Hussein
+      email: zakariya@wildlifedynamics.com
+      role: owner
+    - name: Zakariya Hussein
+      email: zakariya@wildlifedynamics.com
+      role: reviewer
+  outputs:
+    - name: Subject Observations Dashboard
+      type: dashboard
+      description: >-
+        A dashboard with a map of the subject observations, one view per group.
+      indicators:
+        - name: Subject Observations
+    - name: Subject Observations Map
+      type: map
+      description: >-
+        A point map of the subject observations, colored by subject.
+      indicators:
+        - name: Subject Observations
+    - name: Subject Observations Data
+      type: file
+      description: >-
+        One file per group with one row per observation (CSV and/or GeoParquet), including
+        unpacked observation details when included.
+      indicators:
+        - name: Subject Observations
+  license: BSD-3-Clause
+  repository: https://github.com/wildlife-dynamics/subject-observations-download
+  documentation: https://github.com/wildlife-dynamics/subject-observations-download#readme
+  readme: README.md
+  keywords: [observations, subjects, stationary, weather-stations, download, earthranger]
+  thumbnail: resources/thumbnail.png
 
 requirements:
   - name: ecoscope-platform

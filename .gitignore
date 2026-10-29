@@ -222,3 +222,7 @@ __marimo__/
 # wt-compiler / local tooling
 _version.py
 .claude
+
+# prepare output (uploaded to the GitHub release, not committed)
+environment.tar
+metadata.json
