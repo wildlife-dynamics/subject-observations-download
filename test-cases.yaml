@@ -42,7 +42,6 @@ base:
           max_zoom: 17
     persist_observations:
       filetypes: ["parquet", "csv"]
-      filename_prefix: "subject_observations"
 
 mock-base:
   name: Base Test Case with mocked IO
@@ -104,7 +103,6 @@ stationary-subjects:
         - index_name: "subject__name"
     persist_observations:
       filetypes: ["parquet", "csv"]
-      filename_prefix: "weather_station_observations"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
@@ -173,7 +171,6 @@ month-grouper:
       ]
     persist_observations:
       filetypes: ["parquet", "csv"]
-      filename_prefix: "monthly_subject_observations"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
@@ -212,7 +209,6 @@ with-details:
       ]
     persist_observations:
       filetypes: ["parquet", "csv"]
-      filename_prefix: "subject_observations_with_details"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
@@ -243,7 +239,6 @@ with-filter:
       drop_columns: ["location", "subject__content_type", "subject__country"]
     persist_observations:
       filetypes: ["parquet", "csv"]
-      filename_prefix: "subject_observations_with_filter"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
@@ -274,7 +269,6 @@ value-grouper:
         - index_name: "subject__name"
     persist_observations:
       filetypes: ["csv"]
-      filename_prefix: "subject_observations_by_name"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
@@ -307,7 +301,6 @@ sql-filter:
       groupers: []
     persist_observations:
       filetypes: ["csv"]
-      filename_prefix: "subject_observations_sql"
     base_map_defs:
       base_maps:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
