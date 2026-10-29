@@ -6,7 +6,8 @@ schema stays identical to what the real task returns:
   - get-subjectgroup-observations-stationary.example-return.parquet
       Three stationary subjects (weather stations). Every observation of a subject sits on
       the same point, which is the case that made Download Subject Tracks fail (compose#3189).
-      Each row also carries sensor readings (temperature, rainfall), as stationary sources do.
+      Sensor readings (temperature, rainfall, humidity) sit in the observation_details JSON,
+      as EarthRanger returns them when observation details are included.
 
   - get-subjectgroup-observations-mixed.example-return.parquet
       The same three weather stations plus the upstream moving subjects, in one group.
@@ -69,8 +70,15 @@ def build_stations(upstream: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         rows["extra__location"] = [{"latitude": station["lat"], "longitude": station["lon"]}] * OBS_PER_STATION
         # every observation of a stationary subject is at the same point
         rows["geometry"] = gpd.points_from_xy([station["lon"]] * OBS_PER_STATION, [station["lat"]] * OBS_PER_STATION)
-        rows["extra__temperature_c"] = rng.normal(22, 4, OBS_PER_STATION).round(1)
-        rows["extra__rainfall_mm"] = rng.gamma(0.5, 2, OBS_PER_STATION).round(1)
+        # sensor readings live in the observation_details JSON, as EarthRanger returns them
+        # with include_details=true; the first reading of each station has no details
+        temperature = rng.normal(22, 4, OBS_PER_STATION).round(1)
+        rainfall = rng.gamma(0.5, 2, OBS_PER_STATION).round(1)
+        humidity = rng.integers(40, 90, OBS_PER_STATION)
+        rows["extra__observation_details"] = [None] + [
+            {"temperature": float(t), "rainfall": float(r), "humidity": int(h)}
+            for t, r, h in zip(temperature[1:], rainfall[1:], humidity[1:])
+        ]
         frames.append(rows)
 
     out = gpd.GeoDataFrame(pd.concat(frames, ignore_index=True), geometry="geometry", crs=upstream.crs)

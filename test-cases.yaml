@@ -98,6 +98,7 @@ stationary-subjects:
         utc: "+03:00"
     subject_obs:
       subject_group_name: "Weather Stations"
+      include_details: true
     groupers:
       groupers:
         - index_name: "subject__name"
@@ -131,6 +132,7 @@ mixed-stationary-and-moving:
         utc: "+03:00"
     subject_obs:
       subject_group_name: "Mixed"
+      include_details: true
     groupers:
       groupers: []
     persist_observations:
