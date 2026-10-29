@@ -81,6 +81,7 @@ The following fields live under **Advanced Configurations** in this section:
 
 - **Include Details**: Include additional details from each observation
   - Default: `false` (not included) — check to include detailed observation information
+  - When checked, the observation details (e.g. a weather station's `temperature`, `rainfall`, `humidity`) are unpacked into one column per value
 - **Include Subject Source Details**: Include information about the tracking device/source
   - Default: `false` (not included) — check to include device and source information
 - **Filter**: Control which observations are returned based on EarthRanger's exclusion flags (data quality markers set on each observation)
@@ -151,8 +152,9 @@ Your observations are saved in the format(s) you selected under *Filetypes*, one
   - **geometry**: The observation's location (a point)
   - **subject__name**, **subject__id**, **subject__subject_type**, **subject__subject_subtype**, **subject__sex**: Subject information
   - **id**, **source**: Observation and source identifiers
-  - The observation's own values (e.g. a weather station's readings), with EarthRanger's `extra__` prefix removed
-  - Observation details and subject source details, if you enabled them
+  - The observation's own values, with EarthRanger's `extra__` prefix removed
+  - If **Include Details** is checked: one column per observation detail (e.g. `temperature`, `rainfall`, `humidity`). Nested values are joined with `__` (e.g. `wind__speed`), and an observation without a given detail has an empty cell
+  - Subject source details, if you enabled them
 - There are no speed, distance or duration columns — use Download Subject Tracks for those.
 
 ### Visual Outputs (When Maps are Generated)

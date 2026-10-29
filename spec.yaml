@@ -183,6 +183,26 @@ workflow:
       prefix: "extra__"
       duplicate_strategy: "suffix"
 
+  # Unpack the observation_details JSON (present when "Include Observation Details" is
+  # checked) into one column per key — same approach as event_details in download-events.
+  # Skipped when the column is absent (details unchecked, or the warehouse backend).
+  - name: Normalize Observation Details
+    id: normalize_observation_details
+    task: normalize_json_column
+    partial:
+      df: ${{ workflow.drop_extra_prefix.return }}
+      column: "observation_details"
+      skip_if_not_exists: true
+      sort_columns: false
+
+  - name: Remove Column Prefix Observation Details
+    id: drop_observation_details_prefix
+    task: drop_column_prefix
+    partial:
+      df: ${{ workflow.normalize_observation_details.return }}
+      prefix: "observation_details__"
+      duplicate_strategy: "suffix"
+
   # === FILTER DATA (location filter) ===
   - title: Filter Data
     type: task-group
@@ -193,7 +213,7 @@ workflow:
         id: filter_obs
         task: apply_reloc_coord_filter
         partial:
-          df: ${{ workflow.drop_extra_prefix.return }}
+          df: ${{ workflow.drop_observation_details_prefix.return }}
           roi_gdf: null
           roi_name: null
           reset_index: false

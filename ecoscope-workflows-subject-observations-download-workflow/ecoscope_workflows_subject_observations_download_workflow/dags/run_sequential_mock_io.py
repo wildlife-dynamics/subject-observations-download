@@ -66,6 +66,9 @@ from ecoscope.platform.tasks.transformation import (
     drop_column_prefix as drop_column_prefix,
 )
 from ecoscope.platform.tasks.transformation import map_columns as map_columns
+from ecoscope.platform.tasks.transformation import (
+    normalize_json_column as normalize_json_column,
+)
 from ecoscope.platform.tasks.transformation import sort_values as sort_values
 from ecoscope.platform.tasks.warning import (
     mixed_subtype_warning as mixed_subtype_warning,
@@ -229,6 +232,51 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
         .call()
     )
 
+    normalize_observation_details = (
+        task(normalize_json_column)
+        .validate()
+        .set_task_instance_id("normalize_observation_details")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=drop_extra_prefix,
+            column="observation_details",
+            skip_if_not_exists=True,
+            sort_columns=False,
+            **(params.get("normalize_observation_details") or {}),
+        )
+        .call()
+    )
+
+    drop_observation_details_prefix = (
+        task(drop_column_prefix)
+        .validate()
+        .set_task_instance_id("drop_observation_details_prefix")
+        .handle_errors()
+        .with_tracing()
+        .skipif(
+            conditions=[
+                any_is_empty_df,
+                any_dependency_skipped,
+            ],
+            unpack_depth=1,
+        )
+        .partial(
+            df=normalize_observation_details,
+            prefix="observation_details__",
+            duplicate_strategy="suffix",
+            **(params.get("drop_observation_details_prefix") or {}),
+        )
+        .call()
+    )
+
     filter_obs = (
         task(apply_reloc_coord_filter)
         .validate()
@@ -243,7 +291,7 @@ def main(params: dict[str, Any], validate_params_schema: bool = True):
             unpack_depth=1,
         )
         .partial(
-            df=drop_extra_prefix,
+            df=drop_observation_details_prefix,
             roi_gdf=None,
             roi_name=None,
             reset_index=False,
