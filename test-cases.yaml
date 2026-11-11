@@ -306,6 +306,88 @@ sql-filter:
         - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
           opacity: 1.0
 
+sql-allowed-functions:
+  name: SQL Previously-Blocked Keywords and Window Function
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Queries the old keyword filter rejected, plus a subquery and window function."
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    time_range:
+      since: "2015-01-01T00:00:00Z"
+      until: "2015-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    sql_query:
+      # `replace()` and `created_at`/`updated_at` (a real observation column, and an
+      # alias) tripped the substring keyword blocklist that ecoscope#874 removed.
+      # The window function guards the authorizer's ALLOWED_FUNCTIONS. A subquery
+      # stands in for a CTE, which `validate_sql_query` still rejects (it requires
+      # a leading SELECT).
+      query: >-
+        SELECT *, row_number() OVER (PARTITION BY subject_key ORDER BY fixtime DESC) AS fix_rank
+        FROM (
+          SELECT *, replace(subject__name, ' ', '_') AS subject_key,
+            created_at AS updated_at
+          FROM df
+          WHERE created_at IS NOT NULL
+        )
+    groupers:
+      groupers: []
+    persist_observations:
+      filetypes: ["csv"]
+    generate_maps:
+      value: false
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
+sql-csv-formula:
+  name: SQL CSV Formula Neutralization
+  mock_io: true
+  params:
+    workflow_details:
+      name: "Subject Observations Download"
+      description: "Formula-like cells and column labels in a CSV download."
+    er_client_name:
+      data_source:
+        name: "mep_dev"
+    time_range:
+      since: "2015-01-01T00:00:00Z"
+      until: "2015-01-07T23:59:59Z"
+      timezone:
+        label: "Africa/Nairobi (UTC+03:00)"
+        tzCode: "Africa/Nairobi"
+        name: "(UTC+03:00) Nairobi"
+        utc: "+03:00"
+    subject_obs:
+      subject_group_name: "Ecoscope"
+    sql_query:
+      # Smoke test only: the harness checks the run succeeds, not file contents.
+      # The CSV should carry these as '=1+1, '@SUM(1) and a '=label column.
+      query: >-
+        SELECT '=1+1' AS formula, '@SUM(1)' AS at_formula, subject__name AS "=label", *
+        FROM df
+    groupers:
+      groupers: []
+    persist_observations:
+      filetypes: ["csv"]
+    generate_maps:
+      value: false
+    base_map_defs:
+      base_maps:
+        - url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          opacity: 1.0
+
 skip-maps:
   name: Test Skipping Map Generation
   mock_io: true
